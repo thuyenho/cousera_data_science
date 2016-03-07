@@ -1,0 +1,92 @@
+---
+title: "Regression Models Course Project"
+author: "Thuyen Ho"
+date: "February 27, 2016"
+output: pdf_document
+---
+# Executive summary
+
+In this project, we will analyze the `mtcars` data set and explore the relationship between a set of variables and miles per gallon (MPG) which will be our outcome.
+
+Main objects:
+
+- Answer the question "Is an automatic or manual transmission better for MPG ?"
+- Quantify the MPG difference between automatic and manual transmissions
+
+# Data processing
+
+First, we load the dataset `mtcars` and explore summary about dataset.
+
+```{r}
+data(mtcars)
+str(mtcars)
+head(mtcars)
+```
+
+As you see above, the dataset evaluation shows that it has 11 variables and 32 samples . the variables `vs`, `am`, `gear` and `card` are numeric variables. Those ones must be factor variables, so that we perform the necessary data transformations by factoring the necessary variables and look at the data.
+
+```{r}
+mtcars$cyl <- factor(mtcars$cyl)
+mtcars$vs <- factor(mtcars$vs)
+mtcars$gear <- factor(mtcars$gear)
+mtcars$carb <- factor(mtcars$carb)
+mtcars$am <- factor(mtcars$am,labels=c('Automatic','Manual'))
+```
+
+# Exploratory Data Analysis
+
+Initially, we plot the relationships between all the variables of the dataset (see Figure 1 in the appendix). From the plot, we notice that variables like `cyl`, `disp`, `hp`, `drat`, `wt`, `vs` and `am` seem to have some strong correlation with `mpg`. But we will use linear models to quantify that in the regression analysis section.
+
+In this analysis, we are interested in the effects of car transmission type on mpg (see Figure 2 in the appendix). So, we look at the distribution of mpg for each level of am (Automatic or Manual) by plotting box plot. This plot clearly depicts that manual transmissions tend to have higher MPG. This data is further analyzed and discussed in regression analysis section by fitting a linear model.
+
+# Regression analysis
+
+Our initial model includes all variables as predictors of mpg. Then we perform step-wise regression/model selection algorithm on the following initial model.
+
+```{r, results =  "hide"}
+initModel <- lm(mpg ~ ., data = mtcars)
+bestModel <- step(initModel, direction = "both")
+```
+
+The best model obtained from the above computations shows that variables, `cyl`, `wt`, `hp` and `am`.
+
+```{r}
+summary(bestModel)
+```
+
+The adjusted R-squared value of 0.84, so that means 0.84% percent of total variability that is explained by the regression model above.
+
+# Residuals and diagnostic
+
+```{r}
+par(mfrow = c(2, 2)); plot(bestModel)
+```
+
+There is a bit of a curve to the residual plot, so that it departs slightly from normality. The residuals for the Chrysler Imperial, Fiat 128, and Toyota Corolla are called out because they exert some influence on the shape of the curve.
+
+```{r}
+leverage <- hatvalues(bestModel)
+tail(sort(leverage),3)
+```
+
+
+```{r}
+influence <- dfbetas(bestModel)
+tail(sort(influence), 3)
+```
+
+# Conclusions
+
+Cars with manual transmission get 1.8 more miles per gallon compared to cars with Automatic transmission. (1.8 adjusted for hp, cyl, and wt).
+
+# Appendix
+
+```{r fig.height=9, fig.width=8, fig.align = "center", warning = F, message = F, echo = FALSE}
+library("GGally")
+data(mtcars)
+ggpairs(mtcars, title = "Figure 1. Relationships between variables.")
+```
+
+```{r, echo = FALSE}
+boxplot(mpg ~ am, data = mtcars, col = (c("red","blue")), ylab = "Miles Per Gallon", xlab = "Transmission Type", main = "Figure 2. MPG per transmission type.")
+```

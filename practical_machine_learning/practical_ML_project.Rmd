@@ -1,0 +1,65 @@
+---
+title: "Practical Machine Learning Course Project"
+author: "Thuyen Ho"
+date: "March 29, 2016"
+---
+
+# Executive summary
+
+For this project, we are given data from accelerometers on the belt, forearm, arm, and dumbell of 6 research study participants. Our training data consists of accelerometer data and a label identifying the quality of the activity the participant was doing. Our testing data consists of accelerometer data without the identifying label. Our goal is to predict the labels for the test set observations.
+
+# Data processing
+
+We load the dataset from training and testing set. 
+
+```{r}
+library(caret)
+training <- read.csv('pml-training.csv')
+testing <- read.csv('pml-testing.csv')
+```
+
+Because some variables on testing set only contains missing values. So that, we exclude that variables by using `nearZeroVar` and alo exclude variable `X`.
+
+```{r}
+nzv <- nearZeroVar(testing,saveMetrics=TRUE)
+excludeVars <- which(nzv$nzv)
+excludeVars <- c(excludeVars, which(names(training) == "X"))
+training <- training[, -excludeVars]
+```
+
+Because I want to be able to estimate the out-of-sample error, I randomly split the full training data (ptrain) into a smaller training set and a validation set:
+
+```{r}
+inTrain <- createDataPartition(y=training$classe, p = 0.6, list = FALSE)
+subTraining <- training[inTrain,]
+validation <- training[-inTrain,]
+```
+
+# Model Building
+
+I decided to start with a Random Forest model, to see if it would have acceptable performance. I fit the model on ptrain1, and instruct the “train” function to use 3-fold cross-validation to select optimal tuning parameters for the model.
+
+```{r}
+# instruct train to use 3-fold CV to select optimal tuning parameters
+tr <- trainControl(method="cv", number=3)
+modelFit.rf <- train(classe ~ ., method='rf', data=subTraining, trControl=tr)
+modelFit.rf$finalModel
+```
+
+# Model Evaluation and Selection
+
+Now, I use the fitted model to predict the label (“classe”) and show the confusion matrix to compare the predicted versus the actual labels:
+
+```{r}
+sub.testing.predictions <- predict(modelFit.rf, validation)
+confusionMatrix(validation$classe, sub.testing.predictions)
+```
+
+The accuracy is 99.9%, thus my predicted accuracy for the out-of-sample error is 0.1%.
+
+This is an excellent result, so rather than trying additional algorithms, I will use Random Forests to predict on the testing set.
+
+```{r}
+testing.predictions <- predict(modelFit.rf, testing)
+testing.predictions
+```
